@@ -1,0 +1,42 @@
+# Paper-guided settings. Bounds and unspecified widths need dataset-specific calibration.
+model:
+  backbone: timm
+  pretrained: true
+  image_size: 64
+  cnn_dim: 32
+  attention: true
+  field:
+    hidden: 256
+    layers: 8
+    skip_layer: 4
+    encoding:
+      mode: complex
+      frequencies: 10
+    direction_frequencies: 4
+data:
+  root: data/nmr
+  image_size: 64
+render:
+  near: 0.8
+  far: 3.5
+  coarse_samples: 64
+  fine_samples: 128
+  ray_chunk: 128
+  query_chunk: 8192
+  white_background: true
+train:
+  output: runs/nmr
+  steps: 200000
+  batch_size: 1
+  rays_per_image: 1024
+  encoder_lr: 0.00001
+  head_lr: 0.0001
+  warmup_steps: 0
+  coarse_loss_weight: 1.0
+  grad_clip: 1.0
+  amp: true
+  seed: 42
+  cpu_threads: 4
+  log_every: 100
+  save_every: 10000
+  validate_every: 5000

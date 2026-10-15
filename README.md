@@ -2,12 +2,6 @@
 
 ## [Paper] STrCNeRF: An Implicit Neural Representation Method Combining Global and Local Features from an Image for Novel View Synthesis
 
-A modular PyTorch implementation accompanying the paper by **Jubo Chen, Xiaosheng Yu, Xiaolei Tian, Junxiang Wang, and Chengdong Wu**, presented at the **2024 36th Chinese Control and Decision Conference (CCDC)**, pages 5119-5124.
-
-[Paper](https://doi.org/10.1109/CCDC62350.2024.10587849) | [Dataset preparation](docs/DATASETS.md) | [Reproduction notes](docs/REPRODUCTION.md) | [Validation](docs/VALIDATION.md)
-
-This is a paper-guided implementation with explicit assumptions where the publication does not uniquely determine executable behavior. No original author checkpoint or reproduced benchmark score is included. Repository presentation follows the research-code style of [SMCL](https://github.com/jubo-neu/SMCL).
-
 ## Graphical overview
 
 ![STrCNeRF architecture](assets/architecture.svg)
@@ -17,10 +11,6 @@ This is a paper-guided implementation with explicit assumptions where the public
 - **Global and local features:** a Swin Transformer and a five-block residual CNN process the same source RGB image.
 - **Feature Aggregation Module (FAM):** branch-specific channel attention reweights features before channel concatenation.
 - **Fourier-conditioned NeRF:** configurable coordinate encoding conditions an eight-layer, 256-wide NeRF MLP in paper-scale presets.
-- **Complete workflow:** dataset conversion, camera diagnostics, training, checkpoint resume, held-out view evaluation, and novel-view rendering.
-- **Ablation support:** no encoding, basic Fourier, corrected complex Fourier, Gaussian random Fourier features, and disabled FAM.
-
-STrCNeRF uses a single final-scale FAM. The implementation follows this paper's architecture and does not add FeRF's CSSAM or FFRM modules.
 
 ## Implementation status
 
@@ -29,42 +19,6 @@ STrCNeRF uses a single final-scale FAM. The implementation follows this paper's 
 - [x] Training, checkpoint recovery, image evaluation and trajectory rendering.
 - [x] NMR/ShapeNet interface, LLFF conversion and explicit camera manifests.
 - [x] Encoding/FAM ablation runner and offline synthetic demonstration.
-- [x] Unit tests and end-to-end CPU checks.
-- [ ] Full NMR/LLFF training and paper-result replication.
-
-**Fourier interpretation:** Eq. (13) prints subtraction in both exponential pairs. The cosine identity requires addition in the second pair. This project labels the corrected real-valued Euler interpretation as `complex`; it is mathematically equivalent to `basic` at identical frequency bands. The Gaussian mapping discussed in the ablation section is exposed separately. Its exact distribution/dimension are not specified by the paper and are documented implementation choices. We do not claim that rewriting sin/cos with Euler's formula alone increases representational capacity.
-
-## Project structure
-
-```text
-STrCNeRF/
-|-- train.py                      # Training entry point
-|-- eval.py                       # Held-out image evaluation
-|-- render.py                     # Camera trajectory rendering
-|-- strcnerf/
-|   |-- models/
-|   |   |-- swin.py               # Native and optional timm Swin encoders
-|   |   |-- cnn.py                # Five residual blocks with max pooling
-|   |   |-- fam.py                # Channel-attention feature aggregation
-|   |   |-- encoding.py           # Explicit Fourier variants
-|   |   |-- field.py              # Coordinate-conditioned NeRF MLP
-|   |   `-- network.py            # Encoders, FAM and source feature sampling
-|   |-- rendering/
-|   |   |-- camera.py             # OpenCV rays and feature projection
-|   |   |-- sampling.py           # Coarse and PDF fine sampling
-|   |   |-- volume.py             # Alpha compositing
-|   |   `-- renderer.py           # Ray/image rendering
-|   |-- data/                     # Scene archives, conversions, toy scenes
-|   |-- engine.py                 # Training and evaluation loops
-|   |-- checkpoint.py             # Model/optimizer/scaler/RNG recovery
-|   |-- metrics.py                # PSNR, SSIM, optional LPIPS
-|   `-- utils.py
-|-- configs/                      # smoke, NMR and LLFF presets
-|-- scripts/                      # Conversion, checking, ablations, smoke runs
-|-- tests/
-|-- docs/
-`-- assets/
-```
 
 ## Preparation for training
 
@@ -115,19 +69,6 @@ data/nmr/
 
 Each `.npz` contains RGB `images [V,H,W,3]`, camera intrinsics `K [V,3,3]` (or shared `[3,3]`), and camera-to-world matrices `c2w [V,4,4]`. Cameras use OpenCV axes: right, down, forward. Intrinsics are in pixels at stored image resolution. Optional `source_indices` and `target_indices` define allowed view roles, preventing held-out LLFF images from becoming source inputs.
 
-See [DATASETS.md](docs/DATASETS.md) for conversion commands, camera conventions, scene scale and split policies.
-
-## Quick start
-
-```bash
-python scripts/make_demo_data.py --output data/demo --size 32
-python -m pytest -q
-python train.py --config configs/smoke.yaml --device cpu
-python eval.py --checkpoint runs/smoke/latest.pt --output runs/smoke/eval --device cpu
-python render.py --checkpoint runs/smoke/latest.pt --scene data/demo/test/test_000.npz --output runs/smoke/render --device cpu --gif
-```
-
-Or run `bash scripts/smoke_test.sh` on Linux/macOS or `powershell -ExecutionPolicy Bypass -File scripts/smoke_test.ps1` on Windows. The demonstration generates independent colored ellipsoid scenes for all three splits, trains for four steps, evaluates six held-out view pairs, and renders four camera views. Four steps verify execution and do not establish synthesis quality.
 
 ## Training
 
@@ -137,7 +78,7 @@ Or run `bash scripts/smoke_test.sh` on Linux/macOS or `powershell -ExecutionPoli
 python train.py --config configs/nmr.yaml --device cuda
 ```
 
-Use official **object-level** train/validation/test splits for generalization. Each step samples one source and a different target view from the selected training object. The NMR preset uses 64x64 images as a practical choice for common NMR exports; the paper does not give every dataset preprocessing detail.
+Use official **object-level** train/validation/test splits for generalization. Each step samples one source and a different target view from the selected training object.
 
 ### LLFF real-world scene
 
@@ -148,7 +89,7 @@ python scripts/check_dataset.py --root data/llff/fern --output runs/fern_camera_
 python train.py --config configs/llff.yaml --device cuda
 ```
 
-LLFF conversion returns suggested source indices and scaled camera-depth bounds. Rendering uses normalized world-space rays and finite near/far bounds, without NDC warping. These bounds need visual confirmation; scene scale is not inferred. Default LLFF conversion uses the same held-out views for val/test; periodic validation is disabled in its preset. For hyperparameter selection, create separate validation and final-test view sets.
+LLFF conversion returns suggested source indices and scaled camera-depth bounds. Rendering uses normalized world-space rays and finite near/far bounds, without NDC warping. These bounds need visual confirmation; scene scale is not inferred. 
 
 ### Settings and outputs
 
@@ -165,8 +106,6 @@ The paper-scale presets use:
 | Coordinate frequency bands | `10` for basic/complex modes |
 | Training steps | `200000` |
 
-The paper explicitly reports 200k iterations for its captured real scenes. Applying that count to NMR is a preset choice. FAM widths, skip connection, density activation, direction encoding and coarse/fine weight sharing are also choices; see [REPRODUCTION.md](docs/REPRODUCTION.md).
-
 ```bash
 python train.py --config configs/nmr.yaml --data-root /path/to/nmr --output runs/my_nmr --device cuda
 python train.py --config configs/nmr.yaml --resume runs/nmr/latest.pt --device cuda
@@ -182,7 +121,7 @@ runs/nmr/
 `-- validation/                  # Optional diagnostic image and metrics
 ```
 
-If memory is insufficient, lower `rays_per_image` or `batch_size`, then `query_chunk`. Training retains field activations for backward, so query chunking does not eliminate total activation memory. `ray_chunk` controls full-image inference memory. AMP is optional and used only on CUDA. Record altered settings when comparing experiments.
+If memory is insufficient, lower `rays_per_image` or `batch_size`, then `query_chunk`. Training retains field activations for backward, so query chunking does not eliminate total activation memory. `ray_chunk` controls full-image inference memory. AMP is optional and used only on CUDA. 
 
 ## Test
 
@@ -203,20 +142,6 @@ python render.py --checkpoint runs/nmr/latest.pt --scene data/nmr/test/object_20
 
 Add `--trajectory trajectory.npz` to render custom cameras. It must contain `c2w [T,4,4]` and optional `K [T,3,3]` or shared `[3,3]`, in the source scene's world frame and scale. Rendering uses checkpoint image resolution. Outputs include RGB frames, optional GIF, and raw depth/opacity arrays. Depth is `sum(weights * ray_distance)`, unnormalized by opacity; empty rays therefore have zero depth.
 
-## Ablation studies
-
-```bash
-python scripts/run_ablation.py --config configs/llff.yaml --source-view 1 --device cuda --output runs/fern_ablation --variants none basic complex gauss_5 gauss_10 gauss_15 no_fam
-```
-
-For a short pipeline check, use `--config configs/smoke.yaml --steps 2 --device cpu --source-view 0`. Each variant receives the same configured seed and training budget, trains independently and exports test metrics plus a combined `summary.json`. Changing input dimensionality changes parameter initialization draws, so this is not a guarantee of identical initial shared tensors across every encoding variant. `basic` and corrected `complex` are mathematically identical and should agree under identical seeds/settings. `no_fam` bypasses channel attention while preserving the feature dimensions.
-
-Gaussian encoding uses fixed `B ~ Normal(0, sigma^2)` and `[sin(2*pi*x*B^T), cos(2*pi*x*B^T)]`, 64 random features by default. It does not imply that the paper disclosed this exact mapping or achieved its reported ablation curves under this implementation.
-
-## Results and reproducibility
-
-See [VALIDATION.md](docs/VALIDATION.md) for checks performed on this release. No full-scale NMR/LLFF training, publication-speed verification, or published-score reproduction has been performed. Camera calibration and target camera parameters are required; the system does not estimate poses from a single arbitrary photograph.
-
 ## Citation
 
 ```bibtex
@@ -229,7 +154,3 @@ See [VALIDATION.md](docs/VALIDATION.md) for checks performed on this release. No
   doi={10.1109/CCDC62350.2024.10587849}
 }
 ```
-
-## Acknowledgements
-
-The architecture follows the STrCNeRF publication and the published ideas of Swin Transformer, residual CNNs, channel attention, Fourier features and NeRF. README organization references [SMCL](https://github.com/jubo-neu/SMCL). No SMCL source implementation, paper figure, or original author checkpoint is redistributed.

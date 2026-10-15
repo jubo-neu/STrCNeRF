@@ -1,0 +1,16 @@
+name: strcnerf
+channels: [pytorch, nvidia, conda-forge]
+dependencies:
+  - python=3.11
+  - pytorch=2.5
+  - torchvision=0.20
+  - pytorch-cuda=12.1
+  - numpy
+  - pillow
+  - pyyaml
+  - tqdm
+  - pip
+  - pip:
+      - timm>=1.0
+      - lpips>=0.1.4
+      - pytest>=8

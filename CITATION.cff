@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "Please cite the STrCNeRF paper. This repository is a paper-guided implementation."
+title: "STrCNeRF: An Implicit Neural Representation Method Combining Global and Local Features from an Image for Novel View Synthesis"
+type: conference-paper
+authors:
+  - family-names: Chen
+    given-names: Jubo
+  - family-names: Yu
+    given-names: Xiaosheng
+  - family-names: Tian
+    given-names: Xiaolei
+  - family-names: Wang
+    given-names: Junxiang
+  - family-names: Wu
+    given-names: Chengdong
+doi: 10.1109/CCDC62350.2024.10587849
+year: 2024
+conference:
+  name: "2024 36th Chinese Control and Decision Conference (CCDC)"
+start: 5119
+end: 5124
